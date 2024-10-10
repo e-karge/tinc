@@ -107,6 +107,17 @@ AC_ARG_ENABLE(tunemu,
   [tunemu=false]
 )
 
+AC_ARG_ENABLE(vmnet,
+  AS_HELP_STRING([--enable-vmnet], [enable support for the vmnet driver]),
+  [ AS_IF([test "x$enable_vmnet" = "xyes"],
+      [ AC_DEFINE(ENABLE_VMNET, 1, [Support for vmnet])
+        vmnet=true
+      ],
+      [vmnet=false])
+  ],
+  [vmnet=false]
+)
+
 AC_ARG_WITH(windows2000,
   AS_HELP_STRING([--with-windows2000], [compile with support for Windows 2000. This disables support for tunneling over existing IPv6 networks.]),
   [ AS_IF([test "x$with_windows2000" = "xyes"],
@@ -133,6 +144,7 @@ AM_CONDITIONAL(CYGWIN, test "$cygwin" = true)
 AM_CONDITIONAL(UML, test "$uml" = true)
 AM_CONDITIONAL(VDE, test "$vde" = true)
 AM_CONDITIONAL(TUNEMU, test "$tunemu" = true)
+AM_CONDITIONAL(VMNET, test "$vmnet" = true)
 AM_CONDITIONAL(WITH_SYSTEMD, test "$systemd" = true)
 
 AC_CACHE_SAVE

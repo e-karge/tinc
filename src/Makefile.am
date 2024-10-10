@@ -60,6 +60,9 @@ tincd_SOURCES += bsd/device.c
 if TUNEMU
 tincd_SOURCES += bsd/tunemu.c bsd/tunemu.h
 endif
+if VMNET
+tincd_SOURCES += bsd/vmnet.c bsd/vmnet.h
+endif
 endif
 
 if SOLARIS
@@ -84,6 +87,10 @@ endif
 
 if TUNEMU
 LIBS += -lpcap
+endif
+
+if VMNET
+LIBS += -framework vmnet
 endif
 
 AM_CPPFLAGS = -DCONFDIR=\"$(sysconfdir)\" -DRUNSTATEDIR=\"$(runstatedir)\" -DLOCALSTATEDIR=\"$(localstatedir)\" -I $(abs_top_builddir)/

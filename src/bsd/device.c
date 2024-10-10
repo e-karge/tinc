@@ -33,6 +33,10 @@
 #include "tunemu.h"
 #endif
 
+#ifdef ENABLE_VMNET
+#include "vmnet.h"
+#endif
+
 #ifdef HAVE_NET_IF_UTUN_H
 #include <sys/sys_domain.h>
 #include <sys/kern_control.h>
@@ -49,6 +53,9 @@ typedef enum device_type {
 #ifdef ENABLE_TUNEMU
 	DEVICE_TYPE_TUNEMU,
 #endif
+#ifdef ENABLE_VMNET
+	DEVICE_TYPE_VMNET,
+#endif
 	DEVICE_TYPE_UTUN,
 } device_type_t;
 
@@ -58,7 +65,9 @@ char *iface = NULL;
 static const char *device_info = "OS X utun device";
 static uint64_t device_total_in = 0;
 static uint64_t device_total_out = 0;
-#if defined(ENABLE_TUNEMU)
+#if defined(ENABLE_VMNET)
+static device_type_t device_type = DEVICE_TYPE_VMNET;
+#elif defined(ENABLE_TUNEMU)
 static device_type_t device_type = DEVICE_TYPE_TUNEMU;
 #elif defined(HAVE_OPENBSD) || defined(HAVE_FREEBSD) || defined(HAVE_DRAGONFLY)
 static device_type_t device_type = DEVICE_TYPE_TUNIFHEAD;
@@ -148,6 +157,13 @@ static bool setup_device(void) {
 		}
 
 #endif
+#ifdef ENABLE_VMNET
+		else if(!strcasecmp(type, "vmnet")) {
+			device_type = DEVICE_TYPE_VMNET;
+			device = xstrdup("vmnet host");
+		}
+
+#endif
 #ifdef HAVE_NET_IF_UTUN_H
 		else if(!strcasecmp(type, "utun")) {
 			device_type = DEVICE_TYPE_UTUN;
@@ -176,11 +192,15 @@ static bool setup_device(void) {
 			}
 	}
 
-	if(routing_mode == RMODE_SWITCH && device_type != DEVICE_TYPE_TAP) {
+	if(routing_mode == RMODE_SWITCH
+		&& device_type != DEVICE_TYPE_TAP
+#ifdef ENABLE_VMNET
+		&& device_type != DEVICE_TYPE_VMNET
+#endif
+	) {
 		logger(LOG_ERR, "Only tap devices support switch mode!");
 		return false;
 	}
-
 	// Open the device
 
 	switch(device_type) {
@@ -189,6 +209,13 @@ static bool setup_device(void) {
 	case DEVICE_TYPE_TUNEMU: {
 		char dynamic_name[256] = "";
 		device_fd = tunemu_open(dynamic_name);
+	}
+	break;
+#endif
+#ifdef ENABLE_VMNET
+
+	case DEVICE_TYPE_VMNET: {
+		device_fd = macos_vmnet_open();
 	}
 	break;
 #endif
@@ -313,6 +340,12 @@ static bool setup_device(void) {
 		device_info = "BSD tunemu device";
 		break;
 #endif
+#ifdef ENABLE_VMNET
+
+	case DEVICE_TYPE_VMNET:
+		device_info = "macOS vmnet device";
+		break;
+#endif
 	}
 
 #ifdef SIOCGIFADDR
@@ -334,6 +367,12 @@ static void close_device(void) {
 
 	case DEVICE_TYPE_TUNEMU:
 		tunemu_close(device_fd);
+		break;
+#endif
+#ifdef ENABLE_VMNET
+
+	case DEVICE_TYPE_VMNET:
+		macos_vmnet_close(device_fd);
 		break;
 #endif
 
@@ -417,6 +456,9 @@ static bool read_packet(vpn_packet_t *packet) {
 		break;
 	}
 
+#ifdef ENABLE_VMNET
+	case DEVICE_TYPE_VMNET:
+#endif
 	case DEVICE_TYPE_TAP:
 		if((lenin = read(device_fd, packet->data, MTU)) <= 0) {
 			logger(LOG_ERR, "Error while reading from %s %s: %s", device_info,
@@ -498,6 +540,17 @@ static bool write_packet(vpn_packet_t *packet) {
 
 	case DEVICE_TYPE_TUNEMU:
 		if(tunemu_write(device_fd, packet->data + 14, packet->len - 14) < 0) {
+			logger(LOG_ERR, "Error while writing to %s %s: %s", device_info,
+			       device, strerror(errno));
+			return false;
+		}
+
+		break;
+#endif
+#ifdef ENABLE_VMNET
+
+	case DEVICE_TYPE_VMNET:
+		if(macos_vmnet_write(packet->data, packet->len) < 0) {
 			logger(LOG_ERR, "Error while writing to %s %s: %s", device_info,
 			       device, strerror(errno));
 			return false;
