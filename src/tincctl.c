@@ -1736,6 +1736,10 @@ const var_t variables[] = {
 	{"UPnPRefreshPeriod", VAR_SERVER},
 	{"VDEGroup", VAR_SERVER},
 	{"VDEPort", VAR_SERVER},
+	{"VmnetAddr", VAR_SERVER},
+	{"VmnetNetmask", VAR_SERVER},
+	{"VmnetBridgedIf", VAR_SERVER},
+	{"VmnetNat66Prefix", VAR_SERVER},
 	/* Host configuration */
 	{"Address", VAR_HOST | VAR_MULTIPLE},
 	{"Cipher", VAR_SERVER | VAR_HOST},
