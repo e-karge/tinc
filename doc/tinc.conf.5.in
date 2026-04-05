@@ -286,7 +286,7 @@ to start with an Ethernet header.
 Set type to vmnet-bridged.
 Like with tap, Tinc will expect packets read from the virtual network device
 to start with an Ethernet header.
-Use BridgedIf settings to select the bridged physical device
+Use VmnetBridgedIf settings to select the bridged physical device
 .It tap Pq BSD and Linux
 Set type to tap.
 Tinc will expect packets read from the virtual network device
